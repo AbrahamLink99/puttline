@@ -1,27 +1,23 @@
-const viewStart = document.getElementById('view-start');
-const viewSlope = document.getElementById('view-slope');
-const btnCalibrate = document.getElementById('btn-calibrate');
-const btnStop = document.getElementById('btn-stop');
-const errorMsg = document.getElementById('error-msg');
+import { createStepCounter, getStrideCm } from './stepCounter.js';
 
-const readoutTotal = document.getElementById('readout-total');
-const readoutPercent = document.getElementById('readout-percent');
-const readoutLeftRight = document.getElementById('readout-leftright');
-const readoutUpDown = document.getElementById('readout-updown');
-
-// Smoothing time constant in seconds. Higher = smoother but laggier.
-const SMOOTHING_TAU = 0.5;
-// How often the UI updates (ms). The sensor fires ~60 Hz; we only
-// need to repaint at ~10 Hz to feel responsive without thrashing the DOM.
-const UI_INTERVAL_MS = 100;
-
-const state = {
-  beta: 0,
-  gamma: 0,
-  lastEventTime: null,
-  uiIntervalId: null,
-  initialized: false,
+/* Views */
+const views = {
+  start: document.getElementById('view-start'),
+  slope: document.getElementById('view-slope'),
+  distanceIntro: document.getElementById('view-distance-intro'),
+  distanceActive: document.getElementById('view-distance-active'),
+  distanceResult: document.getElementById('view-distance-result'),
 };
+
+function showView(name) {
+  for (const [key, el] of Object.entries(views)) {
+    el.hidden = key !== name;
+  }
+  clearError();
+}
+
+/* Error banner on the start view */
+const errorMsg = document.getElementById('error-msg');
 
 function showError(message) {
   errorMsg.textContent = message;
@@ -33,36 +29,61 @@ function clearError() {
   errorMsg.textContent = '';
 }
 
-function showSlopeView() {
-  clearError();
-  viewStart.hidden = true;
-  viewSlope.hidden = false;
+/* Permission — iOS 13+ needs an explicit request triggered by a user
+   gesture. Result is cached per-event-type so we don't re-prompt within
+   a session. Non-iOS browsers skip the request entirely. */
+const permissionState = { motion: null, orientation: null };
+
+async function ensurePermission(kind) {
+  const EventClass = kind === 'motion' ? window.DeviceMotionEvent : window.DeviceOrientationEvent;
+  if (typeof EventClass === 'undefined') return 'unsupported';
+  if (permissionState[kind] === 'granted') return 'granted';
+  if (typeof EventClass.requestPermission !== 'function') {
+    permissionState[kind] = 'granted';
+    return 'granted';
+  }
+  try {
+    const result = await EventClass.requestPermission();
+    permissionState[kind] = result;
+    return result;
+  } catch (err) {
+    console.error(`[permission] ${kind} request failed`, err);
+    return 'denied';
+  }
 }
 
-function showStartView() {
-  viewSlope.hidden = true;
-  viewStart.hidden = false;
-}
+/* Slope */
+const readoutTotal = document.getElementById('readout-total');
+const readoutPercent = document.getElementById('readout-percent');
+const readoutLeftRight = document.getElementById('readout-leftright');
+const readoutUpDown = document.getElementById('readout-updown');
+
+const SLOPE_SMOOTHING_TAU = 0.5;
+const SLOPE_UI_INTERVAL_MS = 100;
+
+const slopeState = {
+  beta: 0,
+  gamma: 0,
+  lastEventTime: null,
+  initialized: false,
+  uiIntervalId: null,
+};
 
 function handleOrientation(event) {
   if (event.beta == null || event.gamma == null) return;
-
   const now = performance.now();
-  if (!state.initialized) {
-    state.beta = event.beta;
-    state.gamma = event.gamma;
-    state.lastEventTime = now;
-    state.initialized = true;
+  if (!slopeState.initialized) {
+    slopeState.beta = event.beta;
+    slopeState.gamma = event.gamma;
+    slopeState.lastEventTime = now;
+    slopeState.initialized = true;
     return;
   }
-
-  // Exponential moving average weighted by elapsed time, so the
-  // smoothing behaves the same regardless of the sensor's sample rate.
-  const dt = (now - state.lastEventTime) / 1000;
-  state.lastEventTime = now;
-  const alpha = 1 - Math.exp(-dt / SMOOTHING_TAU);
-  state.beta += (event.beta - state.beta) * alpha;
-  state.gamma += (event.gamma - state.gamma) * alpha;
+  const dt = (now - slopeState.lastEventTime) / 1000;
+  slopeState.lastEventTime = now;
+  const alpha = 1 - Math.exp(-dt / SLOPE_SMOOTHING_TAU);
+  slopeState.beta += (event.beta - slopeState.beta) * alpha;
+  slopeState.gamma += (event.gamma - slopeState.gamma) * alpha;
 }
 
 function formatSigned(value, positiveLabel, negativeLabel) {
@@ -72,70 +93,119 @@ function formatSigned(value, positiveLabel, negativeLabel) {
   return `${abs.toFixed(1)}° ${label}`;
 }
 
-function updateUI() {
-  const { beta, gamma } = state;
+function updateSlopeUI() {
+  const { beta, gamma } = slopeState;
   const totalDeg = Math.sqrt(beta * beta + gamma * gamma);
   const percent = Math.tan((totalDeg * Math.PI) / 180) * 100;
-
   readoutTotal.textContent = `${totalDeg.toFixed(1)}°`;
   readoutPercent.textContent = `${percent.toFixed(1)}%`;
   readoutLeftRight.textContent = formatSigned(gamma, 'right', 'left');
   readoutUpDown.textContent = formatSigned(beta, 'uphill', 'downhill');
-
   console.log('[slope]', {
-    betaRaw: beta.toFixed(2),
-    gammaRaw: gamma.toFixed(2),
+    beta: beta.toFixed(2),
+    gamma: gamma.toFixed(2),
     totalDeg: totalDeg.toFixed(2),
     percent: percent.toFixed(2),
   });
 }
 
-function attachSensor() {
-  state.initialized = false;
-  state.lastEventTime = null;
+function startSlope() {
+  slopeState.initialized = false;
+  slopeState.lastEventTime = null;
   window.addEventListener('deviceorientation', handleOrientation);
-  state.uiIntervalId = setInterval(updateUI, UI_INTERVAL_MS);
-  showSlopeView();
+  slopeState.uiIntervalId = setInterval(updateSlopeUI, SLOPE_UI_INTERVAL_MS);
+  showView('slope');
 }
 
-function detachSensor() {
+function stopSlope() {
   window.removeEventListener('deviceorientation', handleOrientation);
-  if (state.uiIntervalId) {
-    clearInterval(state.uiIntervalId);
-    state.uiIntervalId = null;
+  if (slopeState.uiIntervalId) {
+    clearInterval(slopeState.uiIntervalId);
+    slopeState.uiIntervalId = null;
   }
+  showView('start');
 }
 
-async function startCalibration() {
+async function onCalibrateClick() {
   clearError();
-
-  if (typeof DeviceOrientationEvent === 'undefined') {
+  const result = await ensurePermission('orientation');
+  if (result === 'unsupported') {
     showError('Slope sensor not available on this device');
     return;
   }
-
-  // iOS 13+ requires an explicit permission request triggered by a user gesture.
-  if (typeof DeviceOrientationEvent.requestPermission === 'function') {
-    try {
-      const result = await DeviceOrientationEvent.requestPermission();
-      if (result !== 'granted') {
-        showError('Slope sensor needs permission. Check your browser settings.');
-        return;
-      }
-    } catch (err) {
-      console.error('[slope] permission request failed', err);
-      showError('Slope sensor needs permission. Check your browser settings.');
-      return;
-    }
+  if (result !== 'granted') {
+    showError('Slope sensor needs permission. Check your browser settings.');
+    return;
   }
-
-  attachSensor();
+  startSlope();
 }
 
-function stopCalibration() {
-  detachSensor();
-  showStartView();
+/* Distance */
+const readoutSteps = document.getElementById('readout-steps');
+const readoutDistance = document.getElementById('readout-distance');
+const readoutFinalDistance = document.getElementById('readout-final-distance');
+const readoutFinalSteps = document.getElementById('readout-final-steps');
+
+let stepCounter = null;
+let currentSteps = 0;
+
+function formatSteps(n) {
+  return `${n} ${n === 1 ? 'step' : 'steps'}`;
 }
 
-btnCalibrate.addEventListener('click', startCalibration);
-btnStop.addEventListener('click', stopCalibration);
+function formatDistance(meters) {
+  return `${meters.toFixed(1)} m`;
+}
+
+function metersFromSteps(steps) {
+  return (steps * getStrideCm()) / 100;
+}
+
+function onStepDetected(count) {
+  currentSteps = count;
+  readoutSteps.textContent = formatSteps(count);
+  readoutDistance.textContent = formatDistance(metersFromSteps(count));
+}
+
+async function onMeasureDistanceClick() {
+  clearError();
+  const result = await ensurePermission('motion');
+  if (result === 'unsupported') {
+    showError('Step sensor not available on this device');
+    return;
+  }
+  if (result !== 'granted') {
+    showError('Motion sensor needs permission. Check your browser settings.');
+    return;
+  }
+  showView('distanceIntro');
+}
+
+function startStepCounting() {
+  currentSteps = 0;
+  readoutSteps.textContent = formatSteps(0);
+  readoutDistance.textContent = formatDistance(0);
+  stepCounter = createStepCounter({ onStep: onStepDetected });
+  stepCounter.start();
+  showView('distanceActive');
+}
+
+function stopStepCounting() {
+  if (stepCounter) {
+    stepCounter.stop();
+    stepCounter = null;
+  }
+  readoutFinalDistance.textContent = formatDistance(metersFromSteps(currentSteps));
+  readoutFinalSteps.textContent = formatSteps(currentSteps);
+  showView('distanceResult');
+}
+
+/* Wire up buttons */
+document.getElementById('btn-calibrate').addEventListener('click', onCalibrateClick);
+document.getElementById('btn-slope-stop').addEventListener('click', stopSlope);
+
+document.getElementById('btn-measure-distance').addEventListener('click', onMeasureDistanceClick);
+document.getElementById('btn-distance-start').addEventListener('click', startStepCounting);
+document.getElementById('btn-distance-stop').addEventListener('click', stopStepCounting);
+document.getElementById('btn-distance-again').addEventListener('click', startStepCounting);
+document.getElementById('btn-distance-done').addEventListener('click', () => showView('start'));

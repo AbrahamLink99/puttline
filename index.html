@@ -22,11 +22,12 @@
       <section class="view" id="view-start">
         <div class="card">
           <h2>Ready to putt</h2>
-          <p>Lay the phone flat on the green to measure the slope.</p>
+          <p>Measure the green's slope or walk off the distance to the hole.</p>
         </div>
 
         <div class="actions">
           <button class="btn" id="btn-calibrate">Calibrate slope</button>
+          <button class="btn" id="btn-measure-distance">Measure distance</button>
         </div>
 
         <p class="error-msg" id="error-msg" hidden></p>
@@ -50,7 +51,43 @@
         </div>
 
         <div class="actions">
-          <button class="btn btn-stop" id="btn-stop">Stop</button>
+          <button class="btn btn-stop" id="btn-slope-stop">Stop</button>
+        </div>
+      </section>
+
+      <section class="view" id="view-distance-intro" hidden>
+        <div class="card">
+          <h2>Walk to the hole</h2>
+          <p>Stand at your ball. Press start and walk in a straight line to the hole.</p>
+        </div>
+
+        <div class="actions">
+          <button class="btn" id="btn-distance-start">Start</button>
+        </div>
+      </section>
+
+      <section class="view" id="view-distance-active" hidden>
+        <div class="card">
+          <h2>Counting steps</h2>
+          <p class="readout-big" id="readout-steps">0 steps</p>
+          <p class="readout-sub" id="readout-distance">0.0 m</p>
+        </div>
+
+        <div class="actions">
+          <button class="btn btn-stop" id="btn-distance-stop">Stop</button>
+        </div>
+      </section>
+
+      <section class="view" id="view-distance-result" hidden>
+        <div class="card">
+          <h2>Distance</h2>
+          <p class="readout-big" id="readout-final-distance">0.0 m</p>
+          <p class="readout-sub" id="readout-final-steps">0 steps</p>
+        </div>
+
+        <div class="actions">
+          <button class="btn" id="btn-distance-again">Measure again</button>
+          <button class="btn btn-stop" id="btn-distance-done">Done</button>
         </div>
       </section>
     </main>
