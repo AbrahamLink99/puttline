@@ -19,14 +19,40 @@
     </header>
 
     <main class="app-main">
-      <div class="card">
-        <h2>Ready to putt</h2>
-        <p>Measure slope, count steps, and get your aim point.</p>
-      </div>
+      <section class="view" id="view-start">
+        <div class="card">
+          <h2>Ready to putt</h2>
+          <p>Lay the phone flat on the green to measure the slope.</p>
+        </div>
 
-      <div class="actions">
-        <button class="btn" id="btn-start">Start reading</button>
-      </div>
+        <div class="actions">
+          <button class="btn" id="btn-calibrate">Calibrate slope</button>
+        </div>
+
+        <p class="error-msg" id="error-msg" hidden></p>
+      </section>
+
+      <section class="view" id="view-slope" hidden>
+        <div class="card">
+          <h2>Slope</h2>
+          <p class="readout-big" id="readout-total">0.0°</p>
+          <p class="readout-sub" id="readout-percent">0.0%</p>
+        </div>
+
+        <div class="card">
+          <h2>Left / right</h2>
+          <p class="readout-big" id="readout-leftright">0.0°</p>
+        </div>
+
+        <div class="card">
+          <h2>Uphill / downhill</h2>
+          <p class="readout-big" id="readout-updown">0.0°</p>
+        </div>
+
+        <div class="actions">
+          <button class="btn btn-stop" id="btn-stop">Stop</button>
+        </div>
+      </section>
     </main>
 
     <footer class="app-footer">

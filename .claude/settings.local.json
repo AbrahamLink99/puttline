@@ -6,7 +6,12 @@
       "Bash(npm install:*)",
       "Bash(git commit:*)",
       "Bash(curl -s http://localhost:5173)",
-      "Bash(git config:*)"
+      "Bash(git config:*)",
+      "Bash(gh --version)",
+      "Bash(gh auth *)",
+      "Bash(git branch *)",
+      "Bash(gh repo *)",
+      "WebFetch(domain:puttline.vercel.app)"
     ]
   }
 }
