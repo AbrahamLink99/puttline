@@ -12,7 +12,8 @@
       "Bash(git branch *)",
       "Bash(gh repo *)",
       "WebFetch(domain:puttline.vercel.app)",
-      "Bash(git push *)"
+      "Bash(git push *)",
+      "Bash(node --input-type=module -e ' *)"
     ]
   }
 }

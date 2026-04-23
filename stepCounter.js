@@ -2,9 +2,6 @@
 // accelerometer magnitude past a threshold, with a debounce window
 // to suppress double-counting inside a single walk cycle.
 
-export const DEFAULT_STRIDE_CM = 75;
-const STRIDE_STORAGE_KEY = 'puttline.strideCm';
-
 // Starting point. Walking with the phone in hand typically produces
 // smoothed magnitude peaks of 11-13 m/s² over a ~9.81 baseline (gravity).
 // Tune on the green if false positives/negatives show up.
@@ -18,16 +15,6 @@ const MIN_STEP_INTERVAL_MS = 250;
 // Low-pass filter strength. Small alpha = heavy smoothing.
 const EMA_ALPHA = 0.3;
 const GRAVITY = 9.81;
-
-export function getStrideCm() {
-  const stored = localStorage.getItem(STRIDE_STORAGE_KEY);
-  const parsed = stored ? parseFloat(stored) : NaN;
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_STRIDE_CM;
-}
-
-export function setStrideCm(cm) {
-  localStorage.setItem(STRIDE_STORAGE_KEY, String(cm));
-}
 
 export function createStepCounter({ onStep } = {}) {
   let smoothed = GRAVITY;

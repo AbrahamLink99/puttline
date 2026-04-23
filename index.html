@@ -16,45 +16,56 @@
     <header class="app-header">
       <h1>Puttline</h1>
       <p class="tagline">Read the green</p>
+      <button class="settings-link" id="btn-open-settings" aria-label="Settings">Settings</button>
     </header>
 
     <main class="app-main">
-      <section class="view" id="view-start">
+
+      <!-- Home -->
+      <section class="view" id="view-home">
         <div class="card">
           <h2>Ready to putt</h2>
-          <p>Measure the green's slope or walk off the distance to the hole.</p>
+          <p>Measure the slope at your ball, walk to the hole, and get your aim point.</p>
         </div>
 
         <div class="actions">
-          <button class="btn" id="btn-calibrate">Calibrate slope</button>
-          <button class="btn" id="btn-measure-distance">Measure distance</button>
+          <button class="btn btn-primary" id="btn-new-putt">New putt</button>
+          <button class="btn btn-secondary" id="btn-slope-only">Slope only</button>
+          <button class="btn btn-secondary" id="btn-distance-only">Distance only</button>
         </div>
 
         <p class="error-msg" id="error-msg" hidden></p>
       </section>
 
+      <!-- Slope (shared between standalone and linked flow) -->
       <section class="view" id="view-slope" hidden>
         <div class="card">
-          <h2>Slope</h2>
+          <h2 id="slope-header">Slope</h2>
+          <p id="slope-subtext" hidden>Lay flat on the green</p>
+        </div>
+
+        <div class="card card-stability" id="card-total">
+          <h3>Slope</h3>
           <p class="readout-big" id="readout-total">0.0°</p>
           <p class="readout-sub" id="readout-percent">0.0%</p>
         </div>
 
-        <div class="card">
-          <h2>Left / right</h2>
+        <div class="card card-stability" id="card-leftright">
+          <h3>Left / right</h3>
           <p class="readout-big" id="readout-leftright">0.0°</p>
         </div>
 
-        <div class="card">
-          <h2>Uphill / downhill</h2>
+        <div class="card card-stability" id="card-updown">
+          <h3>Uphill / downhill</h3>
           <p class="readout-big" id="readout-updown">0.0°</p>
         </div>
 
         <div class="actions">
-          <button class="btn btn-stop" id="btn-slope-stop">Stop</button>
+          <button class="btn btn-stop" id="btn-slope-action">Stop</button>
         </div>
       </section>
 
+      <!-- Distance intro -->
       <section class="view" id="view-distance-intro" hidden>
         <div class="card">
           <h2>Walk to the hole</h2>
@@ -62,10 +73,12 @@
         </div>
 
         <div class="actions">
-          <button class="btn" id="btn-distance-start">Start</button>
+          <button class="btn btn-primary" id="btn-distance-start">Start</button>
+          <button class="btn btn-stop" id="btn-distance-cancel">Cancel</button>
         </div>
       </section>
 
+      <!-- Distance active -->
       <section class="view" id="view-distance-active" hidden>
         <div class="card">
           <h2>Counting steps</h2>
@@ -78,6 +91,7 @@
         </div>
       </section>
 
+      <!-- Distance result (standalone flow only) -->
       <section class="view" id="view-distance-result" hidden>
         <div class="card">
           <h2>Distance</h2>
@@ -86,14 +100,92 @@
         </div>
 
         <div class="actions">
-          <button class="btn" id="btn-distance-again">Measure again</button>
+          <button class="btn btn-primary" id="btn-distance-again">Measure again</button>
           <button class="btn btn-stop" id="btn-distance-done">Done</button>
         </div>
       </section>
+
+      <!-- Result (linked flow) -->
+      <section class="view" id="view-result" hidden>
+        <div class="card result-aim">
+          <h2>Aim</h2>
+          <p class="readout-huge" id="readout-aim">0 cm</p>
+        </div>
+
+        <div class="result-grid">
+          <div class="card">
+            <h3>Distance</h3>
+            <p class="readout-med" id="readout-result-distance">0.0 m</p>
+            <p class="readout-sub" id="readout-result-playdistance"></p>
+          </div>
+          <div class="card">
+            <h3>Slope</h3>
+            <p class="readout-med" id="readout-result-slope-side">0.0° side</p>
+            <p class="readout-sub" id="readout-result-slope-long">0.0° up</p>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Putt line</h3>
+          <svg class="trajectory" id="trajectory-svg" viewBox="0 0 300 240" aria-hidden="true"></svg>
+        </div>
+
+        <div class="card stimp-adjust">
+          <h3>Stimp</h3>
+          <div class="stimp-row">
+            <button class="btn-step" id="btn-stimp-down" aria-label="Decrease stimp">−</button>
+            <span class="stimp-value" id="result-stimp-value">10</span>
+            <button class="btn-step" id="btn-stimp-up" aria-label="Increase stimp">+</button>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button class="btn btn-primary" id="btn-result-new">New putt</button>
+          <button class="btn btn-stop" id="btn-result-done">Done</button>
+        </div>
+      </section>
+
+      <!-- Settings -->
+      <section class="view" id="view-settings" hidden>
+        <div class="card">
+          <h2>Settings</h2>
+        </div>
+
+        <div class="card">
+          <label class="setting-row">
+            <span class="setting-label">Default stimp</span>
+            <input type="number" id="setting-stimp" min="6" max="14" step="0.5">
+          </label>
+          <p class="setting-hint">Green speed, 6 (slow) to 14 (tour fast).</p>
+        </div>
+
+        <div class="card">
+          <label class="setting-row">
+            <span class="setting-label">Stride length (cm)</span>
+            <input type="number" id="setting-stride" min="30" max="150" step="1">
+          </label>
+          <p class="setting-hint">Your walking stride, in centimeters.</p>
+        </div>
+
+        <div class="card">
+          <label class="setting-row">
+            <span class="setting-label">Units</span>
+            <select id="setting-units" disabled>
+              <option value="m">Meters</option>
+              <option value="ft">Feet (soon)</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="actions">
+          <button class="btn btn-primary" id="btn-settings-back">Back</button>
+        </div>
+      </section>
+
     </main>
 
     <footer class="app-footer">
-      <p>v0.1</p>
+      <p id="footer-info">v0.1 · Stimp 10</p>
     </footer>
   </div>
 
